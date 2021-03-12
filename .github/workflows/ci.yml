@@ -15,21 +15,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Install boost
+      run: |
+       # Use the boost-1.72.0-linux-16.04-gcc-x64.tar.gz for Ubuntu 16.04
+       mkdir ${{ runner.temp }}/boost
+       curl -L "https://github.com/actions/boost-versions/releases/download/1.72.0-20200608.4/boost-1.72.0-linux-16.04-gcc-x64.tar.gz" -o ${{ runner.temp }}/boost.tar.gz
+       cd ${{ runner.temp }}/boost && tar xzf ${{ runner.temp }}/boost.tar.gz 
+       ls ${{ runner.temp }}/boost
+       sh ${{ runner.temp }}/boost/setup.sh
+
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y --no-install-recommends build-essential liblua5.1-0 liblua5.1-0-dev libprotobuf-dev libsqlite3-dev protobuf-compiler shapelib libshp-dev 
+        sudo apt-get install -y --no-install-recommends build-essential libluajit-5.1-dev libprotobuf-dev libsqlite3-dev protobuf-compiler shapelib libshp-dev 
 
     - name: Build and install
       env:
         S_CFLAGS: -flto -ffunction-sections -fdata-sections
         S_CXXFLAGS: -flto -ffunction-sections -fdata-sections
-        S_LDFLAGS: -Wl,-gc-sections
+        S_LDFLAGS: -Wl,-gc-sections 
       run: |
         mkdir build
         cd build  
         export CFLAGS=${S_CFLAGS} && export CXXFLAGS=${S_CXXFLAGS} && export LDFLAGS=${S_LDFLAGS}
-        BOOST_ROOT=$BOOST_ROOT_1_72_0 cmake -DTILEMAKER_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release ..
+        cmake -DTILEMAKER_BUILD_STATIC=ON -DCMAKE_BUILD_TYPE=Release -DBOOST_ROOT=/opt/hostedtoolcache/boost/1.72.0/x64 ..
         make -j 
         sudo make install
 
@@ -60,3 +69,65 @@ jobs:
       with:
         input: ${{ env.AREA }}.osm.pbf 
         output: ${{ env.AREA }}.mbtiles
+
+  Windows-Build:
+    name: Windows build
+    runs-on: windows-latest
+    env:
+      VCPKG_ROOT: 'C:\vcpkg'
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+
+    - task: Cache@2
+      displayName: 'Cache vcpkg artifacts'
+      inputs:
+        key: 'vcpkg-cache-x64-windows-static-md'
+        path: '$(Build.SourcesDirectory)/vcpkg'
+
+    - name: Run vcpkg
+      uses: lukka/run-vcpkg@v4
+      with:
+        vcpkgArguments: 'boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3 zlib --triplet x64-windows-static-md'
+        vcpkgDirectory: '$(Build.SourcesDirectory)/vcpkg'
+
+    - name: Install dependencies
+      run: |
+        $env:CFLAGS="/GL"      
+        $env:CXXFLAGS="/GL /D_WIN32_WINNT#0x0601 /DBOOST_THREAD_VERSION#3 /DBOOST_ALLOW_DEPRECATED_HEADERS /DBOOST_ASIO_NO_DEPRECATED"
+        $env:LDFLAGS="/LTCG /NODEFAULTLIB:libcmt"
+
+        mkdir ${{ runner.temp }}\lua
+        cd ${{ runner.temp }}\lua && Invoke-WebRequest -Uri "https://www.lua.org/ftp/lua-5.3.6.tar.gz " -OutFile "lua.tar.gz"
+        cd ${{ runner.temp }}\lua && tar xvzf lua.tar.gz
+        git clone https://github.com/alain-riedinger/lua53.git ${{ runner.temp }}\luabuild
+        Copy-Item -Path "${{ runner.temp }}\luabuild\src\*" -Destination "${{ runner.temp }}\lua\lua-5.3.6\src" -Verbose
+        cd ${{ runner.temp }}\lua\lua-5.3.6\src && .\Build-lua.cmd x64
+
+        git clone https://github.com/OSGeo/shapelib ${{ runner.temp }}\shapelib
+        cd ${{ runner.temp }}\shapelib && nmake /f makefile.vc shapelib.lib
+                     
+        mkdir ${{ runner.temp }}\protobuf
+        cd ${{ runner.temp }}\protobuf && Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.6/protobuf-cpp-3.15.6.tar.gz" -OutFile "protobuf.tar.gz"
+        cd ${{ runner.temp }}\protobuf && tar xvzf protobuf.tar.gz
+        cd ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake && cmake -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="c:\vcpkg\scripts\buildsystems\vcpkg.cmake"  -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_MSVC_STATIC_RUNTIME=OFF .
+        cd ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake && cmake --build . --config Release 
+        dir ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release
+
+        mkdir ${{ github.workspace }}\build
+        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="c:\vcpkg\scripts\buildsystems\vcpkg.cmake" -DProtobuf_SRC_ROOT_FOLDER=${{ runner.temp }}\protobuf\protobuf-3.15.6 -DProtobuf_LIBRARY=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\libprotobuf.lib -DProtobuf_PROTOC_EXECUTABLE=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\protoc.exe -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
+        cd ${{ github.workspace }}\build && cmake --build . --config Release
+
+    - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
+      run: |
+        Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf" -OutFile "liechtenstein.osm.pbf"
+        ${{ github.workspace }}\build\Release\tilemaker.exe liechtenstein.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=liechtenstein.mbtiles --verbose || true
+
+    - name: 'Upload compiled executable'
+      uses: actions/upload-artifact@v2
+      with:
+        name: tilemaker-windows
+        path: |
+          ${{ github.workspace }}\resources
+          ${{ github.workspace }}\build\Release\tilemaker.exe
