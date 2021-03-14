@@ -232,9 +232,9 @@ void OsmLuaProcessing::Layer(const string &layerName, bool area) {
 		throw out_of_range("ERROR: Layer(): a layer named as \"" + layerName + "\" doesn't exist.");
 	}
 
-	OutputGeometryType geomType = isWay ? (area ? POLYGON : LINESTRING) : POINT;
+	OutputGeometryType geomType = isWay ? (area ? POLYGON : LINESTRING) : OSM_POINT;
 	try {
-		if (geomType==POINT) {
+		if (geomType==OSM_POINT) {
 			LatpLon pt = indexStore->nodes_at(osmID);
 			Point p = Point(pt.lon, pt.latp);
 

@@ -37,14 +37,15 @@ find_package(Protobuf REQUIRED)
 include_directories(${PROTOBUF_INCLUDE_DIR})
 
 find_package(SQLite3 REQUIRED)
-include_directories(${SQLITE3_INCLUDE_DIR})
+include_directories(${SQLITE3_INCLUDE_DIRS})
 
 find_package(libshp REQUIRED)
 include_directories(${LIBSHP_INCLUDE_DIR})
 
-find_package(LuaJIT)
-if(NOT LUAJIT_FOUND)
-	find_package(Lua REQUIRED)
+find_package(Lua)
+if(NOT LUA_FOUND)
+	find_package(LuaJIT REQUIRED)
+	add_definitions(-DLUAJIT)
 endif()
 include_directories(${LUA_INCLUDE_DIR})
 
@@ -54,10 +55,10 @@ include_directories(${ZLIB_INCLUDE_DIR})
 set(CMAKE_CXX_STANDARD 11)
 
 if(MSVC)
-  add_definitions(-D_USE_MATH_DEFINES)
-  set(THREAD_LIB "")
+	add_definitions(-D_USE_MATH_DEFINES -DWIN32_LEAN_AND_MEAN -DNOGDI)
+  	set(THREAD_LIB "")
 else()
-  set(THREAD_LIB pthread)
+  	set(THREAD_LIB pthread)
 endif()
 
 ADD_CUSTOM_COMMAND(OUTPUT vector_tile.pb.cc vector_tile.pb.h

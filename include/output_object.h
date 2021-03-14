@@ -21,7 +21,7 @@
 #include <atomic>
 
 ///\brief Specifies geometry type for an OutputObject
-enum OutputGeometryType { POINT, LINESTRING, POLYGON, CENTROID, CACHED_POINT, CACHED_LINESTRING, CACHED_POLYGON };
+enum OutputGeometryType { OSM_POINT, LINESTRING, POLYGON, CENTROID, CACHED_POINT, CACHED_LINESTRING, CACHED_POLYGON };
 
 /**
  * \brief OutputObject - any object (node, linestring, polygon) to be outputted to tiles
@@ -79,7 +79,7 @@ public:
 	OutputObjectOsmStorePoint(OutputGeometryType type, bool shp, uint_least8_t l, NodeID id, OSMStore::handle_t handle, AttributeStoreRef attributes)
 		: OutputObject(type, shp, l, id, handle, attributes)
 	{ 
-		assert(type == POINT || type == CENTROID || type == CACHED_POINT);
+		assert(type == OSM_POINT || type == CENTROID || type == CACHED_POINT);
 	}
 }; 
 

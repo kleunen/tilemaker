@@ -101,7 +101,7 @@ void ProcessObjects(OSMStore &osmStore, const ObjectsAtSubLayerIterator &ooSameL
 		OutputObjectRef oo = *jt;
 		if (zoom < oo->minZoom) { continue; }
 
-		if (oo->geomType == POINT) {
+		if (oo->geomType == OSM_POINT) {
 			vector_tile::Tile_Feature *featurePtr = vtLayer->add_features();
 			LatpLon pos = buildNodeGeometry(osmStore, *oo, bbox);
 			featurePtr->add_geometry(9);					// moveTo, repeat x1

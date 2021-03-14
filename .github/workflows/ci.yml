@@ -60,3 +60,61 @@ jobs:
       with:
         input: ${{ env.AREA }}.osm.pbf 
         output: ${{ env.AREA }}.mbtiles
+
+  Windows-Build:
+    name: Windows build
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: ilammy/msvc-dev-cmd@v1
+    - name: Install dependencies
+      run: |
+        $env:CFLAGS="/GL"      
+        $env:CXXFLAGS="/GL /D_WIN32_WINNT#0x0601 /DBOOST_THREAD_VERSION#3 /DBOOST_ALLOW_DEPRECATED_HEADERS /DBOOST_ASIO_NO_DEPRECATED"
+        $env:LDFLAGS="/LTCG /NODEFAULTLIB:libcmt"
+        $env:BOOST_ROOT=$env:BOOST_ROOT_1_72_0
+        $env:PKG_CONFIG_PATH="${{ runner.temp }}\sqlite"
+
+        mkdir ${{ runner.temp }}\lua
+        cd ${{ runner.temp }}\lua && Invoke-WebRequest -Uri "https://www.lua.org/ftp/lua-5.3.6.tar.gz " -OutFile "lua.tar.gz"
+        cd ${{ runner.temp }}\lua && tar xvzf lua.tar.gz
+        git clone https://github.com/alain-riedinger/lua53.git ${{ runner.temp }}\luabuild
+        Copy-Item -Path "${{ runner.temp }}\luabuild\src\*" -Destination "${{ runner.temp }}\lua\lua-5.3.6\src" -Verbose
+        cd ${{ runner.temp }}\lua\lua-5.3.6\src && .\Build-lua.cmd x64
+
+        git clone https://github.com/OSGeo/shapelib ${{ runner.temp }}\shapelib
+        cd ${{ runner.temp }}\shapelib && nmake /f makefile.vc shapelib.lib
+                     
+        git clone https://github.com/sqlite/sqlite ${{ runner.temp }}\sqlite
+        cd ${{ runner.temp }}\sqlite && nmake /f Makefile.msc USE_CRT_DLL=1 libsqlite3.lib
+        dir ${{ runner.temp }}\sqlite
+
+        git clone https://github.com/zlib-ng/zlib-ng ${{ runner.temp }}\zlib-ng     
+        cd ${{ runner.temp }}\zlib-ng && cmake -DZLIB_COMPAT=ON .
+        cd ${{ runner.temp }}\zlib-ng && cmake --build . --config Release --target zlibstatic
+        copy ${{ runner.temp }}\zlib-ng\Release\zlib.lib ${{ runner.temp }}\zlib-ng
+
+        mkdir ${{ runner.temp }}\protobuf
+        cd ${{ runner.temp }}\protobuf && Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.6/protobuf-cpp-3.15.6.tar.gz" -OutFile "protobuf.tar.gz"
+        cd ${{ runner.temp }}\protobuf && tar xvzf protobuf.tar.gz
+        cd ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake && cmake -DZLIB_ROOT=${{ runner.temp }}\zlib-ng -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_MSVC_STATIC_RUNTIME=OFF .
+        cd ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake && cmake --build . --config Release 
+        dir ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release
+
+        mkdir ${{ github.workspace }}\build
+        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC -DProtobuf_SRC_ROOT_FOLDER=${{ runner.temp }}\protobuf\protobuf-3.15.6 -DZLIB_ROOT=${{ runner.temp }}\zlib-ng -DProtobuf_LIBRARY=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\libprotobuf.lib -DProtobuf_PROTOC_EXECUTABLE=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\protoc.exe -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DSQLITE3_INCLUDE_DIRS=${{ runner.temp }}\sqlite -DSQLITE3_LIBRARIES=${{ runner.temp }}\sqlite\libsqlite3.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
+        cd ${{ github.workspace }}\build && cmake --build . --config Release
+
+    - name: Build openmaptiles-compatible mbtiles files of given area
+      run: |
+        Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/${AREA}-latest.osm.pbf" -oOutFile "${AREA}.osm.pbf"
+        .\tilemaker.exe ${AREA}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${AREA}.mbtiles --verbose
+
+    - name: 'Upload compiled executable'
+      uses: actions/upload-artifact@v2
+      with:
+        name: tilemaker-windows
+        path: |
+          ${{ github.workspace }}\resources
+          ${{ github.workspace }}\build\Release\tilemaker.exe

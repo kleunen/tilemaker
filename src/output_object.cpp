@@ -50,7 +50,7 @@ void OutputObject::writeAttributes(
 Geometry buildWayGeometry(OSMStore &osmStore, OutputObject const &oo, const TileBbox &bbox) 
 {
 	switch(oo.geomType) {
-		case POINT:
+		case OSM_POINT:
 		case CACHED_POINT:
 		case CENTROID:
 		{
@@ -102,7 +102,7 @@ Geometry buildWayGeometry(OSMStore &osmStore, OutputObject const &oo, const Tile
 LatpLon buildNodeGeometry(OSMStore &osmStore, OutputObject const &oo, const TileBbox &bbox)
 {
 	switch(oo.geomType) {
-		case POINT:
+		case OSM_POINT:
 		case CACHED_POINT:
 		case CENTROID:
 		{
@@ -122,7 +122,7 @@ LatpLon buildNodeGeometry(OSMStore &osmStore, OutputObject const &oo, const Tile
 bool intersects(OSMStore &osmStore, OutputObject const &oo, Point const &p)
 {
 	switch(oo.geomType) {
-		case POINT:
+		case OSM_POINT:
 		case CACHED_POINT:
 		case CENTROID:
 			return boost::geometry::intersects(osmStore.retrieve<mmap::point_t>(oo.handle), p);
