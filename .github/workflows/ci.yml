@@ -113,7 +113,7 @@ jobs:
         #dir ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release
 
         mkdir ${{ github.workspace }}\build
-        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="c:\vcpkg\scripts\buildsystems\vcpkg.cmake" -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
+        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
         cd ${{ github.workspace }}\build && cmake --build . --config Release
 
     - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
