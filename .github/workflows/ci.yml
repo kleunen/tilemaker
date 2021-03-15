@@ -108,7 +108,7 @@ jobs:
 
     - name: Build openmaptiles-compatible mbtiles files of given area
       run: |
-        Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/${AREA}-latest.osm.pbf" -oOutFile "${AREA}.osm.pbf"
+        Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/${AREA}-latest.osm.pbf" -OutFile "${AREA}.osm.pbf"
         .\tilemaker.exe ${AREA}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${AREA}.mbtiles --verbose
 
     - name: 'Upload compiled executable'
