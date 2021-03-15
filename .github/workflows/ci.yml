@@ -85,7 +85,7 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'  
         vcpkgTriplet: 'x64-windows-static-md'
-        vcpkgArguments: 'boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3 protobuf'
+        vcpkgArguments: 'protobuf[zlib] boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3'
         vcpkgGitCommitId: '30124253eecff36bc90f73341edbfb4f845e2a1e'
         additionalCachedPaths: ${{ env.buildDir }}/vcpkg_installed
 
