@@ -43,11 +43,13 @@ find_package(libshp REQUIRED)
 include_directories(${LIBSHP_INCLUDE_DIR})
 
 find_package(Lua)
+include_directories(${LUA_INCLUDE_DIR})
+
 if(NOT LUA_FOUND)
 	find_package(LuaJIT REQUIRED)
 	add_definitions(-DLUAJIT)
+	include_directories(${LUAJIT_INCLUDE_DIR})
 endif()
-include_directories(${LUA_INCLUDE_DIR})
 
 find_package(ZLIB REQUIRED)
 include_directories(${ZLIB_INCLUDE_DIR})
@@ -74,7 +76,7 @@ file(GLOB tilemaker_src_files
     "clipper/*.cpp"
   )
 add_executable(tilemaker vector_tile.pb.cc osmformat.pb.cc ${tilemaker_src_files})
-target_link_libraries(tilemaker ${PROTOBUF_LIBRARY} ${LIBSHP_LIBRARIES} ${SQLITE3_LIBRARIES} ${LUAJIT_LIBRARIES} ${LUA_LIBRARIES} ${ZLIB_LIBRARY} ${THREAD_LIB} ${CMAKE_DL_LIBS}
+target_link_libraries(tilemaker ${PROTOBUF_LIBRARY} ${LIBSHP_LIBRARIES} ${SQLITE3_LIBRARIES} ${LUAJIT_LIBRARIES} ${LUA_LIBRARIES} ${LUAJIT_LIBRARIES} ${ZLIB_LIBRARY} ${THREAD_LIB} ${CMAKE_DL_LIBS}
 	Boost::system Boost::filesystem Boost::program_options)
 
 install(TARGETS tilemaker RUNTIME DESTINATION bin)

@@ -106,10 +106,10 @@ jobs:
         cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON -DProtobuf_SRC_ROOT_FOLDER=${{ runner.temp }}\protobuf\protobuf-3.15.6 -DZLIB_ROOT=${{ runner.temp }}\zlib-ng -DProtobuf_LIBRARY=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\libprotobuf.lib -DProtobuf_PROTOC_EXECUTABLE=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\protoc.exe -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DSQLITE3_INCLUDE_DIRS=${{ runner.temp }}\sqlite -DSQLITE3_LIBRARIES=${{ runner.temp }}\sqlite\libsqlite3.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
         cd ${{ github.workspace }}\build && cmake --build . --config Release
 
-    - name: Build openmaptiles-compatible mbtiles files of given area
+    - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
       run: |
-        Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/${AREA}-latest.osm.pbf" -OutFile "${AREA}.osm.pbf"
-        .\tilemaker.exe ${AREA}.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=${AREA}.mbtiles --verbose
+        Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/Liechtenstein-latest.osm.pbf" -OutFile "Liechtenstein.osm.pbf"
+        .\tilemaker.exe Liechtenstein.osm.pbf --config=resources/config-openmaptiles.json --process=resources/process-openmaptiles.lua --output=Liechtenstein.mbtiles --verbose
 
     - name: 'Upload compiled executable'
       uses: actions/upload-artifact@v2
