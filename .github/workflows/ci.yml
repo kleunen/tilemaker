@@ -74,14 +74,16 @@ jobs:
     - uses: actions/checkout@v2
     - uses: ilammy/msvc-dev-cmd@v1
 
-    - name: Run vcpkg
-      uses: lukka/run-vcpkg@v6
+    - name: Enable vcpkg cache
+      uses: actions/cache@v2
       with:
-        vcpkgDirectory: '${{ github.workspace }}/vcpkg'  
-        vcpkgTriplet: 'x64-windows-static-md'
-        vcpkgArguments: 'zlib protobuf[zlib] boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3'
-        vcpkgGitCommitId: '30124253eecff36bc90f73341edbfb4f845e2a1e'
-        additionalCachedPaths: ${{ env.buildDir }}/vcpkg_installed
+        path: vcpkg/installed
+        key: windows-vcpkg-x64-0 # Increase the number whenever dependencies are modified
+        restore-keys: windows-vcpkg-x64
+
+    - name: Prepare vcpkg
+      run: |
+        vcpkg install --triplet=x64-windows-static-md zlib protobuf[zlib] boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3
 
     - name: Install dependencies
       run: |
@@ -93,9 +95,11 @@ jobs:
         cd ${{ runner.temp }}\lua\lua-5.3.6\src && .\Build-lua.cmd x64
         git clone https://github.com/OSGeo/shapelib ${{ runner.temp }}\shapelib
         cd ${{ runner.temp }}\shapelib && nmake /f makefile.vc shapelib.lib
-                     
-        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
+         
+        mkdir ${{ github.workspace }}\build        
+        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="c:\vcpkg\scripts\buildsystems\vcpkg.cmake" -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
         cd ${{ github.workspace }}\build && cmake --build . --config Release
+
     - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
       run: |
         Invoke-WebRequest -Uri  "http://download.geofabrik.de/europe/liechtenstein-latest.osm.pbf" -OutFile "liechtenstein.osm.pbf"
