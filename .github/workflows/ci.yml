@@ -81,11 +81,11 @@ jobs:
         key: windows-vcpkg-x64-0 # Increase the number whenever dependencies are modified
         restore-keys: windows-vcpkg-x64
 
-    - name: Prepare vcpkg
+    - name: Building dependencies
       run: |
-        vcpkg install --triplet=x64-windows-static-md luajit shapelib zlib protobuf[zlib] sqlite3 boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess 
+        vcpkg install --triplet=x64-windows-static-md lua shapelib zlib protobuf[zlib] sqlite3 boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess 
 
-    - name: Install dependencies
+    - name: Build tilemaker
       run: |
         mkdir ${{ github.workspace }}\build        
         cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="c:\vcpkg\scripts\buildsystems\vcpkg.cmake"  ..
