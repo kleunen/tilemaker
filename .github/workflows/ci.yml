@@ -79,15 +79,12 @@ jobs:
       with:
         vcpkgDirectory: '${{ github.workspace }}/vcpkg'  
         vcpkgTriplet: 'x64-windows-static-md'
-        vcpkgArguments: 'zlib boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3'
+        vcpkgArguments: 'zlib protobuf[zlib] boost-program-options boost-filesystem boost-geometry boost-system boost-asio boost-interprocess sqlite3'
         vcpkgGitCommitId: '30124253eecff36bc90f73341edbfb4f845e2a1e'
         additionalCachedPaths: ${{ env.buildDir }}/vcpkg_installed
 
     - name: Install dependencies
       run: |
-        $env:CFLAGS="/GL"      
-        $env:CXXFLAGS="/GL /D_WIN32_WINNT#0x0601 /DBOOST_THREAD_VERSION#3 /DBOOST_ALLOW_DEPRECATED_HEADERS /DBOOST_ASIO_NO_DEPRECATED"
-        $env:LDFLAGS="/LTCG /NODEFAULTLIB:libcmt"
         mkdir ${{ runner.temp }}\lua
         cd ${{ runner.temp }}\lua && Invoke-WebRequest -Uri "https://www.lua.org/ftp/lua-5.3.6.tar.gz " -OutFile "lua.tar.gz"
         cd ${{ runner.temp }}\lua && tar xvzf lua.tar.gz
@@ -97,15 +94,7 @@ jobs:
         git clone https://github.com/OSGeo/shapelib ${{ runner.temp }}\shapelib
         cd ${{ runner.temp }}\shapelib && nmake /f makefile.vc shapelib.lib
                      
-        mkdir ${{ runner.temp }}\protobuf
-        cd ${{ runner.temp }}\protobuf && Invoke-WebRequest -Uri "https://github.com/protocolbuffers/protobuf/releases/download/v3.15.6/protobuf-cpp-3.15.6.tar.gz" -OutFile "protobuf.tar.gz"
-        cd ${{ runner.temp }}\protobuf && tar xvzf protobuf.tar.gz
-        cd ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake && cmake -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake"  -Dprotobuf_BUILD_TESTS=OFF -Dprotobuf_MSVC_STATIC_RUNTIME=OFF .
-        cd ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake && cmake --build . --config Release 
-        dir ${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release
-        mkdir ${{ github.workspace }}\build
-
-        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DProtobuf_SRC_ROOT_FOLDER=${{ runner.temp }}\protobuf\protobuf-3.15.6 -DProtobuf_LIBRARY=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\libprotobuf.lib -DProtobuf_PROTOC_EXECUTABLE=${{ runner.temp }}\protobuf\protobuf-3.15.6\cmake\Release\protoc.exe -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
+        cd ${{ github.workspace }}\build && cmake -DTILEMAKER_BUILD_STATIC=ON  -DVCPKG_TARGET_TRIPLET="x64-windows-static-md" -DCMAKE_TOOLCHAIN_FILE="${{ github.workspace }}\vcpkg\scripts\buildsystems\vcpkg.cmake" -DLIBSHP_INCLUDE_DIR=${{ runner.temp }}\shapelib -DLIBSHP_LIBRARIES=${{ runner.temp }}\shapelib\shapelib.lib -DLUA_INCLUDE_DIR=${{ runner.temp }}\lua\lua-5.3.6\x64\include -DLUA_LIBRARIES=${{ runner.temp }}\lua\lua-5.3.6\x64\lib\lua53-static.lib ..
         cd ${{ github.workspace }}\build && cmake --build . --config Release
     - name: Build openmaptiles-compatible mbtiles files of Liechtenstein
       run: |
