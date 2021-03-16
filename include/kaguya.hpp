@@ -633,7 +633,14 @@ namespace kaguya
 	//for lua version compatibility
 	namespace compat
 	{
-#if LUA_VERSION_NUM >= 503
+#if LUA_VERSION_NUM >= 504
+		int lua_resume (lua_State *L, lua_State *from, int nargs, int *nresults)
+		inline int lua_resume(lua_State *L, lua_State* from, int nargs)
+		{
+			int nres;
+			return ::lua_resume(L, from, nargs, &nres);
+		}
+#elif LUA_VERSION_NUM >= 503
 		inline int lua_rawgetp_rtype(lua_State *L, int idx, const void* ptr)
 		{
 			return lua_rawgetp(L, idx, ptr);
