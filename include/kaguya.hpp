@@ -634,7 +634,6 @@ namespace kaguya
 	namespace compat
 	{
 #if LUA_VERSION_NUM >= 504
-		int lua_resume (lua_State *L, lua_State *from, int nargs, int *nresults)
 		inline int lua_resume(lua_State *L, lua_State* from, int nargs)
 		{
 			int nres;
